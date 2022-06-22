@@ -2,7 +2,7 @@
 
 #include <algorithm>
 #include <cassert>
-//#include <iostream>
+#include <iostream>
 #include <map>
 #include <numeric>
 
@@ -69,6 +69,7 @@ std::set<std::vector<int>> booleanMultiply(const std::set<std::vector<int>> &x,
                                         const std::set<std::vector<int>> &y) {
     std::set<std::vector<int>> res;
     //std::cout << "Multiplying " << x << y << "  = ";
+    std::cout << "Multiplying " << x.size() << " x " << y.size() << " -> " << std::flush;
 
     for (const std::vector<int>& x_i : x) {
         for (const std::vector<int>& y_i : y) {
@@ -106,7 +107,7 @@ std::set<std::vector<int>> booleanMultiply(const std::set<std::vector<int>> &x,
                     }            
         }
     }
-    //std::cout << res << std::endl;
+    std::cout << res.size() << std::endl;
     return res;
 }
 
@@ -130,9 +131,61 @@ std::vector<std::set<std::vector<int>>> createMultiplicationInput(
     return res;
 }
 
+struct DedupedImplicant {
+    std::set<int> coverage;
+    std::vector<int> orig_idx;
+};
+
+const std::vector<DedupedImplicant> dedupImplicants(
+    const std::vector<std::set<int>>& pi_coverage) {
+    std::map<std::set<int>, std::vector<int>> coverageToImpl;
+    for (int i = 0; i < pi_coverage.size(); ++i) {
+        auto it = coverageToImpl.find(pi_coverage[i]);
+        if (it == coverageToImpl.end()) {
+            coverageToImpl[pi_coverage[i]] = std::vector{i};
+        } else {
+            it->second.push_back(i);
+        }
+    }
+
+    std::vector<DedupedImplicant> res;
+    for(auto it = coverageToImpl.begin(); it != coverageToImpl.end(); ++it) {
+        DedupedImplicant di{it->first, it->second};
+        res.emplace_back(di);
+    }
+    return res;
+}
+
+void expandInternal(const std::vector<int>& sum, 
+                    const std::vector<DedupedImplicant>& dedup,
+                    std::set<int>& scratchpad,
+                    std::vector<std::set<int>>& res) {
+    int i = scratchpad.size();
+    if (i == sum.size()) {
+        res.push_back(scratchpad);
+        return;
+    }
+
+    for (int orig_idx : dedup[sum[i]].orig_idx) {
+        scratchpad.insert(orig_idx);
+        expandInternal(sum, dedup, scratchpad, res);
+        scratchpad.erase(orig_idx);
+    }
+}
+
+
+const std::vector<std::set<int>> expandDedupedSum(const std::set<int>& sum, 
+                                                  const std::vector<DedupedImplicant>& dedup) {
+    std::vector<std::set<int>> res;
+    std::vector<int> sumVect(sum.begin(), sum.end());
+    std::set<int> scratchpad;
+    expandInternal(sumVect, dedup, scratchpad, res);
+    return res;
+}
+
 } // namespace
 
-PetricResult petric(const std::vector<std::set<int>>& pi_coverage) {
+PetricResult petricInternal(const std::vector<std::set<int>>& pi_coverage) {
     std::map<int, std::set<int>> row_to_impl_map = 
         createRowIdxToImplIdxMap(pi_coverage);
 
@@ -142,6 +195,8 @@ PetricResult petric(const std::vector<std::set<int>>& pi_coverage) {
     result.essential_implicant_idx = 
         findEssentialImplicants(row_to_impl_map);
 
+    std::cout << "Essentials " << result.essential_implicant_idx.size() << std::endl;
+
     // Petric multiplication.
     std::vector<std::set<std::vector<int>>> multIn = 
         createMultiplicationInput(row_to_impl_map);
@@ -150,17 +205,49 @@ PetricResult petric(const std::vector<std::set<int>>& pi_coverage) {
         return result;
     }
 
-    //std::cout << "About to reduce " <<  multIn << std::endl;
+    std::sort(multIn.begin(), multIn.end(), 
+        [] (const std::set<std::vector<int>> &a,
+            const std::set<std::vector<int>> &b) {
+                return a > b;
+        });
+
+    std::cout << "First " << multIn[0].size() << std::endl;
 
     std::set<std::vector<int>> res = 
         multIn.size() > 1 ? std::reduce(++multIn.begin(), multIn.end(),
                                         multIn[0], booleanMultiply) : multIn[0];
     
-    //std::cout << "Reduced to " << res.size() << std::endl; 
-
     for (const auto& pi : res) {
         result.sums_of_products.emplace_back(pi.begin(), pi.end());
     }
+    return result;
+}
+
+
+PetricResult petric(const std::vector<std::set<int>>& pi_coverage) {
+    std::vector<DedupedImplicant> dedupedImpl = dedupImplicants(pi_coverage);
+    std::vector<std::set<int>> dedupedPiCoverage;
+    for (const auto& di : dedupedImpl) {
+        dedupedPiCoverage.push_back(di.coverage);
+    }
+
+    PetricResult dedupedResult = petricInternal(dedupedPiCoverage);
+
+    PetricResult result;
+
+    for (auto essentialDedupedImplIdx : dedupedResult.essential_implicant_idx) {
+        if (dedupedImpl[essentialDedupedImplIdx].orig_idx.size() == 1) {
+            result.essential_implicant_idx.insert(dedupedImpl[essentialDedupedImplIdx].orig_idx[0]);
+        }
+    }
+
+    for (auto sum : dedupedResult.sums_of_products) {
+        std::vector<std::set<int>> expandedSum = expandDedupedSum(sum, dedupedImpl);
+        for (auto& s: expandedSum) {
+            result.sums_of_products.emplace_back(std::move(s));
+        }
+    }
+
     return result;
 }
 
