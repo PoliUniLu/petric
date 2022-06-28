@@ -139,10 +139,10 @@ struct DedupedImplicant {
 const std::vector<DedupedImplicant> dedupImplicants(
     const std::vector<std::set<int>>& pi_coverage) {
     std::map<std::set<int>, std::vector<int>> coverageToImpl;
-    for (int i = 0; i < pi_coverage.size(); ++i) {
+    for (size_t i = 0; i < pi_coverage.size(); ++i) {
         auto it = coverageToImpl.find(pi_coverage[i]);
         if (it == coverageToImpl.end()) {
-            coverageToImpl[pi_coverage[i]] = std::vector{i};
+            coverageToImpl[pi_coverage[i]] = std::vector<int>{static_cast<int>(i)};
         } else {
             it->second.push_back(i);
         }
@@ -160,7 +160,7 @@ void expandInternal(const std::vector<int>& sum,
                     const std::vector<DedupedImplicant>& dedup,
                     std::set<int>& scratchpad,
                     std::vector<std::set<int>>& res) {
-    int i = scratchpad.size();
+    size_t i = scratchpad.size();
     if (i == sum.size()) {
         res.push_back(scratchpad);
         return;
@@ -212,10 +212,15 @@ PetricResult petricInternal(const std::vector<std::set<int>>& pi_coverage) {
         });
 
     std::cout << "First " << multIn[0].size() << std::endl;
-
+#if ((defined(_MSVC_LANG) && _MSVC_LANG >= 201703L) || __cplusplus >= 201703L)
     std::set<std::vector<int>> res = 
         multIn.size() > 1 ? std::reduce(++multIn.begin(), multIn.end(),
                                         multIn[0], booleanMultiply) : multIn[0];
+#else
+    std::set<std::vector<int>> res = 
+        multIn.size() > 1 ? std::accumulate(++multIn.begin(), multIn.end(),
+                                        multIn[0], booleanMultiply) : multIn[0];
+#endif
     
     for (const auto& pi : res) {
         result.sums_of_products.emplace_back(pi.begin(), pi.end());
