@@ -9,7 +9,7 @@ module = Extension('native_petric',
                    extra_compile_args=['-std=c++14'])
 
 setup(name = 'NativePetric',
-      version = 0.2,
+      version = "0.2",
       description = 'Native implementation test',
       ext_modules = [module],
       test_suite='tests')
