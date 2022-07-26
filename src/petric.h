@@ -15,7 +15,8 @@ struct PetricResult {
     std::vector<std::set<int>> sums_of_products;
 };
 
-PetricResult petric(const std::vector<std::set<int>>& pi_coverage);
+PetricResult petric(const std::vector<std::set<int>>& pi_coverage,
+                    const bool single_result);
 
 } // namespace petric
 } // namespace cora

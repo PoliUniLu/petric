@@ -63,7 +63,8 @@ petric(PyObject* self, PyObject* args)
 {
 	// Extract iterable of sets.
 	PyObject* arg;
-	if (!PyArg_ParseTuple(args, "O", &arg)) {
+	int single_result = 0;
+	if (!PyArg_ParseTuple(args,"O|p", &arg, &single_result)) {
 		PyErr_SetString(PyExc_TypeError, "petric expect 1 argument (iterable with coverage sets)");
 		return nullptr;
 	}
@@ -90,7 +91,7 @@ petric(PyObject* self, PyObject* args)
 	}*/
 
 	cora::petric::PetricResult petricResult;
-	petricResult = cora::petric::petric(coverageVector);
+	petricResult = cora::petric::petric(coverageVector, single_result);
 
 
 	//std::cout << "ESS : ";

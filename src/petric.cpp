@@ -112,17 +112,22 @@ std::set<std::vector<int>> booleanMultiply(const std::set<std::vector<int>> &x,
 }
 
 std::vector<std::set<std::vector<int>>> createMultiplicationInput(
-    const std::map<int, std::set<int>>& row_to_impl_map) {
+    const std::map<int, std::set<int>>& row_to_impl_map, 
+    const bool single_result = false) {
     std::vector<std::set<std::vector<int>>> res;
 
     for (const auto& row_item : row_to_impl_map) {
         std::set<std::vector<int>> tmp;
-        std::transform(row_item.second.begin(),
-                       row_item.second.end(),
-                       std::inserter(tmp,tmp.end()),
-                        [] (const int x) -> std::vector<int> {
-                            return std::vector<int>{x};
-                       });
+        if (!single_result) {
+            std::transform(row_item.second.begin(),
+                           row_item.second.end(),
+                           std::inserter(tmp,tmp.end()),
+                            [] (const int x) -> std::vector<int> {
+                                return std::vector<int>{x};
+                            });
+        } else if (row_item.second.size() > 0) {
+            tmp.insert(std::vector<int>{*(row_item.second.begin())});
+        }
         assert(res.size() > 0);
         res.emplace_back(std::move(tmp));
     }
@@ -185,7 +190,8 @@ const std::vector<std::set<int>> expandDedupedSum(const std::set<int>& sum,
 
 } // namespace
 
-PetricResult petricInternal(const std::vector<std::set<int>>& pi_coverage) {
+PetricResult petricInternal(const std::vector<std::set<int>>& pi_coverage,
+                            const bool single_result = false) {
     std::map<int, std::set<int>> row_to_impl_map = 
         createRowIdxToImplIdxMap(pi_coverage);
 
@@ -199,7 +205,7 @@ PetricResult petricInternal(const std::vector<std::set<int>>& pi_coverage) {
 
     // Petric multiplication.
     std::vector<std::set<std::vector<int>>> multIn = 
-        createMultiplicationInput(row_to_impl_map);
+        createMultiplicationInput(row_to_impl_map, single_result);
 
     if (multIn.empty()) {
         return result;
@@ -229,7 +235,11 @@ PetricResult petricInternal(const std::vector<std::set<int>>& pi_coverage) {
 }
 
 
-PetricResult petric(const std::vector<std::set<int>>& pi_coverage) {
+PetricResult petric(const std::vector<std::set<int>>& pi_coverage,
+                    const  bool single_result = false) {
+    if (single_result) {
+        return petricInternal(pi_coverage, true);
+    }
     std::vector<DedupedImplicant> dedupedImpl = dedupImplicants(pi_coverage);
     std::vector<std::set<int>> dedupedPiCoverage;
     for (const auto& di : dedupedImpl) {
