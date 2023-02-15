@@ -69,7 +69,7 @@ std::set<std::vector<int>> booleanMultiply(const std::set<std::vector<int>> &x,
                                         const std::set<std::vector<int>> &y) {
     std::set<std::vector<int>> res;
     //std::cout << "Multiplying " << x << y << "  = ";
-    std::cout << "Multiplying " << x.size() << " x " << y.size() << " -> " << std::flush;
+    //std::cout << "Multiplying " << x.size() << " x " << y.size() << " -> " << std::flush;
 
     for (const std::vector<int>& x_i : x) {
         for (const std::vector<int>& y_i : y) {
@@ -201,7 +201,7 @@ PetricResult petricInternal(const std::vector<std::set<int>>& pi_coverage,
     result.essential_implicant_idx = 
         findEssentialImplicants(row_to_impl_map);
 
-    std::cout << "Essentials " << result.essential_implicant_idx.size() << std::endl;
+    //std::cout << "Essentials " << result.essential_implicant_idx.size() << std::endl;
 
     // Petric multiplication.
     std::vector<std::set<std::vector<int>>> multIn = 
@@ -217,7 +217,7 @@ PetricResult petricInternal(const std::vector<std::set<int>>& pi_coverage,
                 return a > b;
         });
 
-    std::cout << "First " << multIn[0].size() << std::endl;
+    //std::cout << "First " << multIn[0].size() << std::endl;
 #if ((defined(_MSVC_LANG) && _MSVC_LANG >= 201703L) || __cplusplus >= 201703L)
     std::set<std::vector<int>> res = 
         multIn.size() > 1 ? std::reduce(++multIn.begin(), multIn.end(),
