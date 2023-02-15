@@ -107,7 +107,7 @@ std::set<std::vector<int>> booleanMultiply(const std::set<std::vector<int>> &x,
                     }            
         }
     }
-    std::cout << res.size() << std::endl;
+    //std::cout << res.size() << std::endl;
     return res;
 }
 
